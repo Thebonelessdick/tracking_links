@@ -1,0 +1,19 @@
+{
+  "name": "link-tracker",
+  "version": "1.0.0",
+  "description": "A service to track link clicks and locations",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "geoip-lite": "^1.4.10",
+    "useragent": "^2.3.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

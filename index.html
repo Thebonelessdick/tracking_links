@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #trackingLink {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Link Tracker</h1>
+        <div>
+            <label for="targetUrl">Target URL:</label>
+            <input type="url" id="targetUrl" placeholder="https://example.com" style="width: 100%; padding: 8px; margin: 10px 0;">
+        </div>
+        <button id="generateBtn">Generate Tracking Link</button>
+        <input type="text" id="trackingLink" readonly>
+        <div id="trackingData"></div>
+        <div id="dashboard" style="margin-top: 30px; padding: 20px; background: white; border-radius: 8px;">
+            <h2>Analytics Dashboard</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <h3>Click Statistics</h3>
+                    <canvas id="clickChart" width="400" height="200"></canvas>
+                </div>
+                <div>
+                    <h3>Visitor Locations</h3>
+                    <div id="map" style="height: 200px; background: #f0f0f0; display: flex; align-items: center; justify-content: center;">
+                        <p>Map visualization would appear here</p>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 20px;">
+                <h3>Recent Visits</h3>
+                <table id="visitsTable" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #4CAF50; color: white;">
+                            <th style="padding: 10px; text-align: left;">Time</th>
+                            <th style="padding: 10px; text-align: left;">IP Address</th>
+                            <th style="padding: 10px; text-align: left;">Location</th>
+                            <th style="padding: 10px; text-align: left;">Device</th>
+                        </tr>
+                    </thead>
+                    <tbody id="visitsBody">
+                        <!-- Visits will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            const targetUrl = document.getElementById('targetUrl').value;
+            const response = await fetch('/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ targetUrl })
+            });
+            const data = await response.json();
+            const trackingLink = window.location.origin + '/track/' + data.id;
+            document.getElementById('trackingLink').value = trackingLink;
+            
+            // Add click to copy functionality
+            document.getElementById('trackingLink').onclick = function() {
+                this.select();
+                document.execCommand('copy');
+                alert('Link copied to clipboard!');
+            };
+
+            // Show tracking data for the new link
+            showTrackingData(data.id);
+        });
+
+        // Function to display tracking data
+        async function showTrackingData(id) {
+            const response = await fetch(`/data/${id}`);
+            const data = await response.json();
+            
+            // Basic info
+            document.getElementById('trackingData').innerHTML = `
+                <h3>Tracking Data</h3>
+                <p>Created: ${new Date(data.created).toLocaleString()}</p>
+                <p>Total visits: ${data.visits?.length || 0}</p>
+                <p>Target URL: ${data.targetUrl}</p>
+            `;
+
+            // Dashboard data
+            if (data.visits?.length) {
+                // Update visits table
+                const visitsBody = document.getElementById('visitsBody');
+                visitsBody.innerHTML = data.visits.map(visit => `
+                    <tr style="border-bottom: 1px solid #ddd;">
+                        <td style="padding: 10px;">${new Date(visit.timestamp).toLocaleString()}</td>
+                        <td style="padding: 10px;">${visit.ip}</td>
+                        <td style="padding: 10px;">${visit.location?.city || 'Unknown'}, ${visit.location?.country || 'Unknown'}</td>
+                        <td style="padding: 10px;">${visit.device || visit.browser}</td>
+                    </tr>
+                `).join('');
+
+                // Update chart
+                const ctx = document.getElementById('clickChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Total Clicks'],
+                        datasets: [{
+                            label: 'Visits',
+                            data: [data.visits.length],
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
